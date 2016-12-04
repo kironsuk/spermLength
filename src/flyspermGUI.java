@@ -1,10 +1,13 @@
 import java.awt.EventQueue;
+import java.awt.FlowLayout;
 import java.awt.Graphics2D;
+import java.awt.GridLayout;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -24,8 +27,10 @@ import javax.swing.JScrollPane;
 public class flyspermGUI {
 
 	private JFrame frame;
-	private BufferedImage img;
 	private BufferedImage originalImg;
+	private ArrayList<BufferedImage> imgs;
+	private int numImages;
+	private int currIndex;
 	private JFileChooser fileChooser;
 	private JLabel imgPane;
 
@@ -59,7 +64,7 @@ public class flyspermGUI {
 		fileChooser = new JFileChooser();
 		
 		frame = new JFrame();
-		frame.setBounds(100, 100, 1000, 1000);
+		frame.setBounds(50, 50, 1000, 1000);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		JPanel panel = new JPanel();
@@ -83,27 +88,47 @@ public class flyspermGUI {
             }
         });
 		
+		JPanel spanel = new JPanel();
+		frame.getContentPane().add(spanel, BorderLayout.SOUTH);
+		
+		JButton nextImage = new JButton("Next");
+		spanel.add(nextImage);
+		nextImage.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                nextImage(evt);
+            }
+        });
+		
+		JButton prevImage = new JButton("Previous");
+		spanel.add(prevImage);
+		prevImage.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                prevImage(evt);
+            }
+        });
+		
 		imgPane = new JLabel();
+		imgPane.setLayout(new FlowLayout());
 		frame.getContentPane().add(imgPane, BorderLayout.CENTER);
+        imgPane.setVisible(true);
 		
 		
 	}
+	
+
 	
 	private void loadImageAction(ActionEvent evt){
         int returnVal = fileChooser.showOpenDialog(frame);
         if (returnVal == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
-            // instantiate the cell image
-            //imageProcessor c = imageProcessor.getCellImageFromFile(file.getAbsolutePath());
             try {
                 originalImg = ImageIO.read(file);
-                img = getScaledImage(originalImg,600,600);
                 } 
             catch (IOException ex) {
                 System.out.println("problem accessing file"+
                         file.getAbsolutePath());
-                }
-            drawImg();
+                }  
+            reset();
         } 
         else {
             System.out.println("File access cancelled by user.");
@@ -111,13 +136,32 @@ public class flyspermGUI {
 		
 	}
 	
-	private void drawImg(){
-		ImageIcon icon2 = new ImageIcon(getScaledImage(img,600,600)); 
+	private void reset(){
+		drawImg(originalImg);
+		imgs = new ArrayList<BufferedImage>();
+		imgs.add(originalImg);
+		numImages = 1;
+		currIndex = 0;
+	}
+	
+	private void drawImg(BufferedImage image){
+		ImageIcon icon2 = new ImageIcon(getScaledImage(image,600,600)); 
         imgPane.setIcon(icon2);
         imgPane.setHorizontalAlignment(SwingConstants.CENTER);
         imgPane.setVerticalAlignment(SwingConstants.CENTER);
         imgPane.setVisible(true);
+
 	}
+	
+	/*
+	private void drawTiledImg(BufferedImage image){
+		ImageIcon icon2 = new ImageIcon(getScaledImage(image,600,600)); 
+		JLabel jl = new JLabel("", icon2, JLabel.CENTER);
+        imgPane.add(jl);
+        imgPane.setVisible(true);
+
+	}
+	*/
 	
 	private BufferedImage getScaledImage(BufferedImage srcImg, int w, int h){
 	    BufferedImage resizedImg = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
@@ -130,11 +174,39 @@ public class flyspermGUI {
 	    return resizedImg;
 	}
 	
+	private void changeShownImg(int index){
+		if (index>=numImages){
+			drawImg(originalImg);
+			currIndex = 0;
+		}
+		else{
+			drawImg(imgs.get(index));
+			currIndex = index;
+		}
+	}
+	
+	private void nextImage(ActionEvent evt){
+		if (currIndex+1 >=numImages){
+			changeShownImg(0);
+		}else{
+			changeShownImg(currIndex+1);
+		}
+	}
+	
+	private void prevImage(ActionEvent evt){
+		if (currIndex==0){
+			changeShownImg(numImages-1);
+		}else{
+			changeShownImg(currIndex-1);
+		}
+	}
+	
 	private void findLengthAction (ActionEvent evt){
 		imageProcessor ip = new imageProcessor(originalImg);
 		System.out.println(ip.getCellLength());
-		img = ip.array2Img();
-		drawImg();
+		imgs = ip.ims;
+		numImages = imgs.size();
+		changeShownImg(numImages-1);
 	}
 
 }

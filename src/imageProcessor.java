@@ -34,6 +34,7 @@ public class imageProcessor {
 	public BufferedImage imPostThreshold;
 	public BufferedImage imPostRemoval;
 	public BufferedImage imPostSkeleton;
+	public ArrayList<BufferedImage> ims;
 	public int width,height,averageBrightness;
 	public double stdDevBrightness;
 	public int currentContrast=0;
@@ -66,14 +67,21 @@ public class imageProcessor {
 	 ** Combines the thresholding, labelling and thinning methods 
 	 */
 	public double getCellLength() {
+		ims = new ArrayList<BufferedImage>();
+		ims.add(im);
+		
+		
 		getGrayscaleArray();
+		ims.add(getGrayScaleImage());
+		
 		adaptiveThresholding(5);
-		imPostThreshold = array2Img();
+		ims.add(array2Img());
+		
 		keepBiggest(labelImage());
-		imPostRemoval = array2Img();
+		ims.add(array2Img());
 		contouring();
 		contourThinning(5,0.5);
-		//imPostSkeleton = getHighlightedImage(highlightList);
+		ims.add(getHighlightedImage(thinnedCells));
 		return thinnedCells.size()/3.06;
 	}
 
@@ -117,6 +125,19 @@ public class imageProcessor {
 				grayscaleArray[i][j]=new Color(im.getRGB(i,j)).getRed();
 			}
 		}
+	}
+	
+	public BufferedImage getGrayScaleImage(){
+		BufferedImage b = new BufferedImage(width, height, 3);
+		int val;
+		for(int x = 0; x < width; x++) {
+			for(int y = 0; y < height; y++) {
+				val = grayscaleArray[x][y];
+				color = new Color(val, val, val, 255);
+				b.setRGB(x, y, color.getRGB());
+			}
+		}
+		return b;
 	}
 
 	/*
@@ -460,9 +481,9 @@ public class imageProcessor {
 	 */
 	public BufferedImage getHighlightedImage(List<Point> pointList) {
 		BufferedImage newImage = deepCopy(im);
-		int red = Color.RED.getRGB();
+		int blue = Color.BLUE.getRGB();
 		for (Point p: pointList) {
-			newImage.setRGB(p.x,p.y,red);
+			newImage.setRGB(p.x,p.y,blue);
 		}
 		return newImage;
 	}
