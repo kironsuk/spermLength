@@ -35,6 +35,7 @@ public class imageProcessor {
 	public BufferedImage imPostRemoval;
 	public BufferedImage imPostSkeleton;
 	public ArrayList<BufferedImage> ims;
+	public ArrayList<String> titles;
 	public int width,height,averageBrightness;
 	public double stdDevBrightness;
 	public int currentContrast=0;
@@ -67,21 +68,29 @@ public class imageProcessor {
 	 ** Combines the thresholding, labelling and thinning methods 
 	 */
 	public double getCellLength() {
+		titles = new ArrayList<String>();
 		ims = new ArrayList<BufferedImage>();
 		ims.add(im);
+		titles.add("Original Image");
 		
 		
 		getGrayscaleArray();
 		ims.add(getGrayScaleImage());
+		titles.add("Grayscale Image");
 		
 		adaptiveThresholding(5);
 		ims.add(array2Img());
+		titles.add("Thresholded Image");
 		
 		keepBiggest(labelImage());
 		ims.add(array2Img());
+		titles.add("Only Biggest Connected Component");
+		
 		contouring();
 		contourThinning(5,0.5);
 		ims.add(getHighlightedImage(thinnedCells));
+		titles.add("Final Skeleton Highlighted");
+		
 		return thinnedCells.size()/3.06;
 	}
 
