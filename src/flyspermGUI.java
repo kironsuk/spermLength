@@ -185,11 +185,11 @@ public class flyspermGUI {
 		spanel.add(prevImage,c);
 		prevImage.setEnabled(false);
 		
-		saveImage = new JButton("Save Image");
+		saveImage = new JButton("Reset Image");
 		spanel.add(saveImage);
 		saveImage.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                //saveImage(evt);
+                reset();
             }
         });
 		c.gridx = 1;
@@ -259,7 +259,7 @@ public class flyspermGUI {
 	                + " " + field2.getText()
 	                +" " + field3.getText());
 	            findLengthActionManual(
-	            		combo.getSelectedIndex(),
+	            		combo.getSelectedIndex()+1,
 	            		Integer.parseInt(field1.getText()),
 	            		Integer.parseInt(field2.getText()),
 	            		Double.parseDouble( field3.getText()));
@@ -295,9 +295,12 @@ public class flyspermGUI {
 		titles.add("Original Image");
 		numImages = 1;
 		border = new Rectangle(0, 0, imgPane.getWidth(), imgPane.getHeight());
+		corner1 = null;
+		corner2 = null;
 		changeShownImg(0);
 		currGraphics.draw(border);
 		turnOnButtons();
+		calcTrueRectangle();
 		
 		
 	}

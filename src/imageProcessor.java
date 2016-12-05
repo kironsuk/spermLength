@@ -80,7 +80,7 @@ public class imageProcessor {
 	 ** Combines the thresholding, labelling and thinning methods 
 	 */
 	public double getCellLength() {
-		return getCellLengthManual(3, 8, 20,.5);
+		return getCellLengthManual(1, 4, 20,.5);
 	}
 	
 	
@@ -93,7 +93,6 @@ public class imageProcessor {
 		ims.add(im);
 		titles.add("Original Image");
 		
-		//increaseContrast();
 		
 		getGrayscaleArray();
 		ims.add(getGrayScaleImage());
@@ -117,6 +116,7 @@ public class imageProcessor {
 			break;
 		default:
 			adaptiveThresholding(thresParam);
+			break;
 
 		}
 		
@@ -145,13 +145,19 @@ public class imageProcessor {
 	 ** Computes the average pixel value of the grayscale image
 	 */
 	public double getAvgGrayscale() {
-		int total=0;
+		double total=0;
+		int numElems = 0;
+		Point p = new Point();
 		for (int i=1;i<width-1;i++) {
 			for (int j=1;j<height-1;j++) {
-				total+=grayscaleArray[i][j];
+				p = new Point(i,j);
+				if(border.contains(p)){
+					total+=grayscaleArray[i][j];
+					numElems++;
+				}
 			}
 		}
-		return total/(width*height);
+		return total/(numElems);
 	} 
 
 	/*
@@ -639,7 +645,7 @@ public class imageProcessor {
 	 ** Highlights a list of points of interest on the current image 
 	 */
 	public BufferedImage getHighlightedImage(List<Point> pointList) {
-		BufferedImage newImage = im;
+		BufferedImage newImage = deepCopy(im);
 		int blue = Color.BLUE.getRGB();
 		for (Point p: pointList) {
 			newImage.setRGB(p.x,p.y,blue);
@@ -667,14 +673,15 @@ public class imageProcessor {
 
 	/*
 	 ** Performs a deep copy of a buffered image 
-	 
+	 */
+	
 	public BufferedImage deepCopy(BufferedImage bi) {
 		ColorModel cm = bi.getColorModel();
 		boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
 		WritableRaster raster = bi.copyData(null);
 		return new BufferedImage(cm, raster, isAlphaPremultiplied, null);
 	}
-	*/
+	
 
 	/*
 	 * Turns the binary array to a buffered image
@@ -720,7 +727,7 @@ public class imageProcessor {
 	public static void main(String[] args) {
 		imageProcessor ip = getImageProcessorFromFile("sperm/easy/24708.1_2 at 20X.jpg");
 		System.out.println("starting to think");
-		System.out.println("Length is "+ip.getCellLengthManual(0,5,1000,.6));
+		System.out.println("Length is "+ip.getCellLengthManual(4,5,1000,.6));
 	}
 
 }
