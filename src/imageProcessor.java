@@ -87,7 +87,40 @@ public class imageProcessor {
 		titles.add("Only Biggest Connected Component");
 		
 		contouring();
-		contourThinning(5,0.5);
+		contourThinning(4,0.4);
+		ims.add(getHighlightedImage(thinnedCells));
+		titles.add("Final Skeleton Highlighted");
+		
+		return thinnedCells.size()/3.06;
+	}
+	
+	public double getCellLengthManual(boolean whichThres, int thresParam, int absolute, double relative) {
+		titles = new ArrayList<String>();
+		ims = new ArrayList<BufferedImage>();
+		ims.add(im);
+		titles.add("Original Image");
+		
+		
+		getGrayscaleArray();
+		ims.add(getGrayScaleImage());
+		titles.add("Grayscale Image");
+		
+		if (whichThres) {//adaptive
+			adaptiveThresholding(thresParam);
+		}
+		else{// stardard
+			threshold(thresParam);
+		}
+		ims.add(array2Img());
+		titles.add("Thresholded Image");
+		
+		
+		keepBiggest(labelImage());
+		ims.add(array2Img());
+		titles.add("Only Biggest Connected Component");
+		
+		contouring();
+		contourThinning(absolute,relative);
 		ims.add(getHighlightedImage(thinnedCells));
 		titles.add("Final Skeleton Highlighted");
 		
@@ -223,11 +256,21 @@ public class imageProcessor {
 
 
 	}
+	/*
+	 * Standard Thresholding. Makes binary2arr where everyone above threshold input is positive and everything below is negative.
+	 */
+	public void threshold(int thres){
+		binary2dArr = new boolean[width][height];
+		for (int i=1;i<width-1;i++) {
+			for (int j=1;j<height-1;j++) {
+				binary2dArr[i][j]=(grayscaleArray[i][j]>=thres);
+			}
+		}
+	}
 
 	/*
-	 ** Sets the boolean array isCell which separates object and background pixels
-	 ** The adaptive threshold method uses the mean of pixels within 
-	 ** the given window size as the threshold
+	 * Uses the mean of the pixels in the box defined by the window size around the pixel as the threshold.
+	 * The idea here is to the continuous line of a sperm cell one object. 
 	 */
 	public void adaptiveThresholding(int window) {
 		binary2dArr = new boolean[width][height];
@@ -381,8 +424,7 @@ public class imageProcessor {
 	 **  Computes the length of the sperm cell based in users drawing
 	 */
 	public double getDrawingLength() {
-		double res = drawLength/3.06;
-		return res;
+		return drawLength/3.06;
 	}
 
 	/*

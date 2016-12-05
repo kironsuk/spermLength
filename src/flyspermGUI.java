@@ -13,6 +13,7 @@ import java.util.ArrayList;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
@@ -23,6 +24,7 @@ import java.awt.Dimension;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
@@ -106,11 +108,20 @@ public class flyspermGUI {
             }
         });
 		
+		JButton btnFindLengthMan = new JButton("Find Length Manual");
+		c.gridx = 2;
+		c.gridy = 0;
+		panel.add(btnFindLengthMan, c);
+		btnFindLengthMan.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                findLengthActionMan(evt);
+            }
+        });
+		
 		
 		title = new JLabel();
 		//panel.add(lblTitle);
-		c.gridwidth = 2;
-		c.gridheight = 2;
+		c.gridwidth = 3;
 		c.gridx = 0;
 		c.gridy = 2;
 		panel.add(title,c);
@@ -123,7 +134,7 @@ public class flyspermGUI {
 		
 		JPanel spanel = new JPanel();
 		frame.getContentPane().add(spanel, BorderLayout.SOUTH);
-		
+		spanel.setLayout(new GridBagLayout());
 		
 		
 		JButton nextImage = new JButton("Next");
@@ -133,8 +144,9 @@ public class flyspermGUI {
                 nextImage(evt);
             }
         });
+		c.gridwidth=1;
 		c.gridx = 1;
-		c.gridy = 0;
+		c.gridy = 1;
 		spanel.add(nextImage,c);
 		
 		JButton prevImage = new JButton("Previous");
@@ -145,13 +157,13 @@ public class flyspermGUI {
             }
         });
 		c.gridx = 0;
-		c.gridy = 0;
+		c.gridy = 1;
 		spanel.add(prevImage,c);
 		
 		lengthDisp = new JLabel("Sperm Length:");
 		c.gridwidth = 2;
 		c.gridx = 0;
-		c.gridy = 1;
+		c.gridy = 0;
 		spanel.add(lengthDisp,c);
 		
 		
@@ -163,7 +175,39 @@ public class flyspermGUI {
 		
 	}
 	
-
+	private void findLengthActionMan(ActionEvent evt){
+			System.out.println("do I even get here?");
+	        JTextField field1 = new JTextField("5");
+	        JTextField field2 = new JTextField("5");
+	        JTextField field3 = new JTextField(".5");
+	        String[] items = {"Adaptive", "Stardard"};
+	        JComboBox combo = new JComboBox(items);
+	        
+	        JPanel p = new JPanel(new GridLayout(4,2));
+	        p.add(new JLabel("Threshold Type:"));
+	        p.add(combo);
+	        p.add(new JLabel("Threshold Param:"));
+	        p.add(field1);
+	        p.add(new JLabel("Thinning Param (abs):"));
+	        p.add(field2);
+	        p.add(new JLabel("Thinning Param (rel):"));
+	        p.add(field3);
+	        int result = JOptionPane.showConfirmDialog(null, p, "Manual Input",
+	            JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+	        if (result == JOptionPane.OK_OPTION) {
+	            System.out.println(field1.getText()
+	                + " " + field2.getText()
+	                +" " + field3.getText());
+	            findLengthActionManual(
+	            		combo.getSelectedItem().toString().equals(new String("Adaptive")),
+	            		Integer.parseInt(field1.getText()),
+	            		Integer.parseInt(field2.getText()),
+	            		Double.parseDouble( field3.getText()));
+	        } else {
+	            System.out.println("Cancelled");
+	        }
+		
+	}
 	
 	private void loadImageAction(ActionEvent evt){
         int returnVal = fileChooser.showOpenDialog(frame);
@@ -194,7 +238,7 @@ public class flyspermGUI {
 	}
 	
 	private void drawImg(BufferedImage image){
-		ImageIcon icon2 = new ImageIcon(getScaledImage(image,600,600)); 
+		ImageIcon icon2 = new ImageIcon(getScaledImage(image)); 
         imgPane.setIcon(icon2);
         imgPane.setHorizontalAlignment(SwingConstants.CENTER);
         imgPane.setVerticalAlignment(SwingConstants.CENTER);
@@ -212,8 +256,11 @@ public class flyspermGUI {
 	}
 	*/
 	
-	private BufferedImage getScaledImage(BufferedImage srcImg, int w, int h){
-	    BufferedImage resizedImg = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+	private BufferedImage getScaledImage(BufferedImage srcImg){
+		Dimension d = imgPane.getSize();
+		int w = d.width-50;
+		int h = d.height-20;
+	    BufferedImage resizedImg = new BufferedImage(w,h, BufferedImage.TYPE_INT_ARGB);
 	    Graphics2D g2 = resizedImg.createGraphics();
 
 	    g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
@@ -255,6 +302,17 @@ public class flyspermGUI {
 	private void findLengthAction (ActionEvent evt){
 		imageProcessor ip = new imageProcessor(originalImg);
 		lengthDisp.setText("Sperm Length is :"+((int) ip.getCellLength()));
+		imgs = ip.ims;
+		titles = ip.titles;
+		numImages = imgs.size();
+		changeShownImg(numImages-1);
+	}
+	
+	private void findLengthActionManual (boolean which, int w, int a, double r){
+		System.out.println("got here ok");
+		imageProcessor ip = new imageProcessor(originalImg);
+		
+		lengthDisp.setText("Sperm Length is : "+((int) ip.getCellLengthManual(which,w,a,r)+"mm"));
 		imgs = ip.ims;
 		titles = ip.titles;
 		numImages = imgs.size();
