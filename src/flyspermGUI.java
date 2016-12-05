@@ -11,6 +11,8 @@ import java.awt.Stroke;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.Raster;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,6 +40,7 @@ public class flyspermGUI {
 
 	private JFrame frame;
 	private BufferedImage originalImg;
+	private BufferedImage workingImg;
 	private BufferedImage currImg;
 	private ArrayList<BufferedImage> imgs;
 	private ArrayList<String> titles;
@@ -54,6 +57,10 @@ public class flyspermGUI {
 	private JButton prevImage;
 	private JButton saveImage;
 	private Rectangle border;
+	private Rectangle trueBorder;
+	private Point corner1=null;
+	private Point corner2=null;
+	private Graphics2D currGraphics;
 
 	/**
 	 * Launch the application.
@@ -216,6 +223,9 @@ public class flyspermGUI {
 	}
 	private void pictureMousePressed(MouseEvent evt) {
 		Point p = evt.getPoint();
+		corner1 = corner2;
+		corner2 = p;
+		if (corner1 != null) drawSelection();
 		System.out.println(p);
 		
 	}
@@ -226,9 +236,9 @@ public class flyspermGUI {
 	private void findLengthActionMan(ActionEvent evt){
 			System.out.println("do I even get here?");
 	        JTextField field1 = new JTextField("5");
-	        JTextField field2 = new JTextField("5");
+	        JTextField field2 = new JTextField("20");
 	        JTextField field3 = new JTextField(".5");
-	        String[] items = {"Adaptive", "Stardard"};
+	        String[] items = {"Adaptive","Adaptive+ImageStd","Adaptive+WindowStd","Stardard"};
 	        JComboBox combo = new JComboBox(items);
 	        
 	        JPanel p = new JPanel(new GridLayout(4,2));
@@ -243,11 +253,13 @@ public class flyspermGUI {
 	        int result = JOptionPane.showConfirmDialog(null, p, "Manual Input",
 	            JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 	        if (result == JOptionPane.OK_OPTION) {
-	            System.out.println(field1.getText()
+	            System.out.println(
+	            		combo.getSelectedIndex()
+	            	+" " +field1.getText()
 	                + " " + field2.getText()
 	                +" " + field3.getText());
 	            findLengthActionManual(
-	            		combo.getSelectedItem().toString().equals(new String("Adaptive")),
+	            		combo.getSelectedIndex(),
 	            		Integer.parseInt(field1.getText()),
 	            		Integer.parseInt(field2.getText()),
 	            		Double.parseDouble( field3.getText()));
@@ -282,18 +294,51 @@ public class flyspermGUI {
 		imgs.add(originalImg);
 		titles.add("Original Image");
 		numImages = 1;
+		border = new Rectangle(0, 0, imgPane.getWidth(), imgPane.getHeight());
 		changeShownImg(0);
+		currGraphics.draw(border);
 		turnOnButtons();
-		border = imgPane.getBounds();
-		drawInitialBorder();
+		
+		
 	}
 	
 	private void drawInitialBorder(){
-		Graphics2D g2 = currImg.createGraphics();
-		g2.drawRect(border.x, border.y, border.width, border.height);
+		
+		System.out.println(border);
+		//currGraphics.drawRect(border.x, border.y, border.width, border.height);
+		currGraphics.draw(border);
 	}
 	
+	private void drawSelection(){
+		System.out.println("Drawing Selection");
+		//currGraphics.clearRect(border.x, border.y, border.width, border.height);
+
+		border = new Rectangle(
+				Math.min(corner1.x, corner2.x), 
+				Math.min(corner1.y, corner2.y),
+				Math.abs(corner1.x-corner2.x),
+				Math.abs(corner1.y-corner2.y)
+				);
+				
+		changeShownImg(currIndex);
+		currGraphics.draw(border);
+		calcTrueRectangle();
+		//drawImg(workingImg);
+		//imgPane.repaint();
+	}
 	
+	private void calcTrueRectangle(){
+		
+		int w = imgPane.getWidth(), h =imgPane.getHeight(),
+				tw = imgs.get(currIndex).getWidth(), th = imgs.get(currIndex).getHeight();
+		trueBorder= new Rectangle(
+				(int)(((double)tw*border.x)/w),
+				(int)(((double)th*border.y)/h),
+				(int)(((double)tw*border.width)/w),
+				(int)(((double)th*border.height)/h)
+				);
+				
+	}
 	
 	private void turnOnButtons(){
 		btnFindLength.setEnabled(true);
@@ -304,7 +349,9 @@ public class flyspermGUI {
 	}
 	
 	private void drawImg(BufferedImage image){
+		//updateWorkingImg(image);
 		currImg = getScaledImage(image);
+		currGraphics = currImg.createGraphics();
 		ImageIcon icon2 = new ImageIcon(currImg); 
         imgPane.setIcon(icon2);
         imgPane.setHorizontalAlignment(SwingConstants.CENTER);
@@ -313,15 +360,28 @@ public class flyspermGUI {
 
 	}
 	
-	/*
-	private void drawTiledImg(BufferedImage image){
-		ImageIcon icon2 = new ImageIcon(getScaledImage(image,600,600)); 
-		JLabel jl = new JLabel("", icon2, JLabel.CENTER);
-        imgPane.add(jl);
-        imgPane.setVisible(true);
+	private void updateWorkingImg(BufferedImage image){
+		/*int w = border.width;
+		int h = border.height;
+		workingImg = new BufferedImage (w,h, BufferedImage.TYPE_INT_ARGB);
+		for(int i=0; i<w; i++){
+			for (int j =0; j<h; j++){
+				image.get
+			}
+		}
+		*/
+		ColorModel cm = image.getColorModel();
+		boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
+		Raster r =image.getData(border);
+		workingImg = new BufferedImage(cm,
+				r.createCompatibleWritableRaster(),
+				isAlphaPremultiplied,
+				null);
+		
+		
 
 	}
-	*/
+	
 	
 	private BufferedImage getScaledImage(BufferedImage srcImg){
 		Dimension d = imgPane.getSize();
@@ -367,8 +427,8 @@ public class flyspermGUI {
 	}
 	
 	private void findLengthAction (ActionEvent evt){
-		imageProcessor ip = new imageProcessor(originalImg);
-		lengthDisp.setText("Sperm Length is :"+((int) ip.getCellLength()));
+		imageProcessor ip = new imageProcessor(originalImg,trueBorder);
+		lengthDisp.setText("Sperm Length is :"+((int) ip.getCellLength())+"um");
 		imgs = ip.ims;
 		titles = ip.titles;
 		numImages = imgs.size();
@@ -376,8 +436,8 @@ public class flyspermGUI {
 		changeShownImg(numImages-1);
 	}
 	
-	private void findLengthActionManual (boolean which, int w, int a, double r){
-		imageProcessor ip = new imageProcessor(originalImg);
+	private void findLengthActionManual (int which, int w, int a, double r){
+		imageProcessor ip = new imageProcessor(originalImg, trueBorder);
 		
 		lengthDisp.setText("Sperm Length is : "+((int) ip.getCellLengthManual(which,w,a,r)+"um"));
 		imgs = ip.ims;

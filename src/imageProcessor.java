@@ -11,6 +11,7 @@ import java.awt.image.ColorModel;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.io.FileOutputStream;
 import java.io.FileInputStream;
 import javax.imageio.ImageIO;
@@ -22,6 +23,7 @@ import javax.swing.WindowConstants;
 
 import java.util.LinkedList;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 
@@ -53,6 +55,7 @@ public class imageProcessor {
 	public boolean[][] resultArray;
 	public boolean[][] binary2dArr; 
 	public Color color;
+	public Rectangle border;
 
 
 	public imageProcessor(BufferedImage i) {
@@ -60,6 +63,15 @@ public class imageProcessor {
 		this.imOriginal=i;
 		this.width=i.getWidth();
 		this.height=i.getHeight();
+		this.border = new Rectangle(0,0,this.width,this.height);
+		// TODO Auto-generated constructor stub
+	}
+	public imageProcessor(BufferedImage i, Rectangle r) {
+		this.im=i;
+		this.imOriginal=i;
+		this.width=i.getWidth();
+		this.height=i.getHeight();
+		this.border = r;
 		// TODO Auto-generated constructor stub
 	}
 
@@ -68,29 +80,46 @@ public class imageProcessor {
 	 ** Combines the thresholding, labelling and thinning methods 
 	 */
 	public double getCellLength() {
-		return getCellLengthManual(true, 5, 50,.6);
+		return getCellLengthManual(3, 8, 20,.5);
 	}
+	
 	
 	/*
 	 * Gets the Cell length with input parameters to determine how the algorithm works
 	 */
-	public double getCellLengthManual(boolean whichThres, int thresParam, int absolute, double relative) {
+	public double getCellLengthManual(int whichThres, int thresParam, int absolute, double relative) {
 		titles = new ArrayList<String>();
 		ims = new ArrayList<BufferedImage>();
 		ims.add(im);
 		titles.add("Original Image");
 		
+		//increaseContrast();
 		
 		getGrayscaleArray();
 		ims.add(getGrayScaleImage());
 		titles.add("Grayscale Image");
 		
-		if (whichThres) {//adaptive
+		
+		
+		switch (whichThres) {
+
+		case 1://adaptive just mean
 			adaptiveThresholding(thresParam);
-		}
-		else{// stardard
+			break;
+		case 2:
 			adaptiveThresholdingPlusStd(thresParam);
+			break;
+		case 3:
+			adaptiveThresholdingPlusWindowStd(thresParam);
+			break;
+		case 4:
+			threshold(thresParam);
+			break;
+		default:
+			adaptiveThresholding(thresParam);
+
 		}
+		
 		ims.add(array2Img());
 		titles.add("Thresholded Image");
 		
@@ -138,15 +167,34 @@ public class imageProcessor {
 		}
 		return Math.sqrt(total/(width*height));
 	}
-
+	
 	/*
-	 ** Converts the original image into grayscale 
+	 ** Converts the original image into grayscale
 	 */
 	public void getGrayscaleArray() {
 		grayscaleArray=new int[width][height];
+		Point p = new Point();
 		for (int i=0;i<width;i++) {
 			for (int j=0;j<height;j++) {
 				grayscaleArray[i][j]=new Color(im.getRGB(i,j)).getRed();
+			}
+		}
+	}
+
+	/*
+	 ** Converts the original image into grayscale, sets everything outside Border to black
+	 */
+	public void getGrayscaleArrayBordered() {
+		grayscaleArray=new int[width][height];
+		Point p = new Point();
+		for (int i=0;i<width;i++) {
+			for (int j=0;j<height;j++) {
+				p = new Point(i,j);
+				if(border.contains(p)){
+				    grayscaleArray[i][j]=new Color(im.getRGB(i,j)).getRed();
+				}else{
+					grayscaleArray[i][j]=0;
+				}
 			}
 		}
 	}
@@ -234,6 +282,37 @@ public class imageProcessor {
 				if (label[i][j]!=maxIndex) binary2dArr[i][j]=false;
 			}
 		}
+		
+	}
+		/*
+		 ** Only keep kth biggest Component
+		 */
+		public void keepkthBiggest(int k, int numObjects) {
+			int[] countArray = new int[numObjects+1];
+			//iterate through grid to update count array
+			for (int i=0;i<width;i++) {
+				for (int j=0;j<height;j++) {
+					countArray[label[i][j]]++;
+				}
+			}
+			
+			int [] sorted = countArray;
+			Arrays.sort(sorted);
+			int kthindex=0;
+			int numElements=sorted[numObjects-k];
+			System.out.println(numElements);
+			for (int i=1;i<numObjects;i++) {
+				if (countArray[i]==numElements) {
+					kthindex = i;
+				}
+			}
+			System.out.println(kthindex);
+			//set everything to false that isn't index
+			for (int i=0;i<width;i++) {
+				for (int j=0;j<height;j++) {
+					if (label[i][j]!=kthindex) binary2dArr[i][j]=false;
+				}
+			}
 
 
 
@@ -247,11 +326,17 @@ public class imageProcessor {
 		if (thres==-1){
 			thres = (int) getAvgGrayscale();
 		}
-		
+		Point p = new Point();
 		binary2dArr = new boolean[width][height];
 		for (int i=1;i<width-1;i++) {
 			for (int j=1;j<height-1;j++) {
-				binary2dArr[i][j]=(grayscaleArray[i][j]>=thres);
+				p = new Point(i,j);
+				if(border.contains(p)){
+					binary2dArr[i][j]=(grayscaleArray[i][j]>=thres);
+				}
+				else{
+					binary2dArr[i][j] = false;
+				}
 			}
 		}
 	}
@@ -263,8 +348,14 @@ public class imageProcessor {
 	 */
 	public void adaptiveThresholding(int window) {
 		binary2dArr = new boolean[width][height];
+		Point p = new Point();
 		for (int i=1;i<width-1;i++) {
 			for (int j=1;j<height-1;j++) {
+				p = new Point(i,j);
+				if (!border.contains(p)){
+					binary2dArr[i][j]=false;
+					continue;
+				}
 				double sum=0;
 				int count=0;
 				for (int k=-window;k<=window;k++) {
@@ -303,6 +394,42 @@ public class imageProcessor {
 						count++;
 					}
 				}
+				if (grayscaleArray[i][j]>(sum/count+std))
+					binary2dArr[i][j]=true;
+			}
+		}
+	}
+	
+	/*
+	 * Uses the mean plus std of window of the pixels in the box defined by the window size around the pixel as the threshold.
+	 * The idea here is to the continuous line of a sperm cell one object. 
+	 */
+	public void adaptiveThresholdingPlusWindowStd(int window) {
+		binary2dArr = new boolean[width][height];
+		ArrayList<Integer> samples = null;
+		double std;
+		for (int i=1;i<width-1;i++) {
+			for (int j=1;j<height-1;j++) {
+				samples = new ArrayList<Integer>();
+				double sum=0;
+				int count=0;
+				for (int k=-window;k<=window;k++) {
+					if (i+k<0) continue;
+					if (i+k>=width) break;
+					for (int l=-window;l<=window;l++) {
+						if (j+l<0) continue;
+						if (j+l>=height) break;
+						sum+=grayscaleArray[i+k][j+l];
+						samples.add(grayscaleArray[i+k][j+l]);
+						count++;
+					}
+				}
+				int variance=0;
+				double mean =sum/count;
+				for (int val : samples){
+					variance += (val-mean)*(val-mean);
+				}
+				std = Math.sqrt(variance);
 				if (grayscaleArray[i][j]>(sum/count+std))
 					binary2dArr[i][j]=true;
 			}
@@ -493,41 +620,6 @@ public class imageProcessor {
 			im=changeBrightness(imOriginal,averageBrightness,(int)stdDevBrightness,-1.0/currentContrast);
 	}
 
-	/*
-	 ** Draws a line segment on the given image
-	 ** p1: start point
-	 ** p2: end point
-	 ** zoomFactor: scale of p1 and p2 relative to size of image
-	 ** stroke: width of line
-	 ** c: color of line
-	 */
-	public void drawLine(BufferedImage i,Point p1, Point p2, double zoomFactor, int stroke, Color c) {
-		zoomFactor=1.0*width/(532.0*Math.pow(1.1,zoomFactor));
-		Graphics2D g = i.createGraphics();
-		g.setColor(c);
-		double x1 = (p1.x)*zoomFactor;
-		double y1 = (p1.y)*zoomFactor;
-		double x2 = (p2.x)*zoomFactor;
-		double y2 = (p2.y)*zoomFactor;
-		int x,y,w,h;
-		if (x1<x2) {
-			x=(int)(x1-zoomFactor*stroke);
-			w=(int)(x2-x1+2*zoomFactor*stroke);
-		} else {
-			x=(int)(x2-zoomFactor*stroke);
-			w=(int)(x1-x2+2*zoomFactor*stroke);
-		}
-		if (y1<y2) {
-			y=(int)(y1-zoomFactor*stroke);
-			h=(int)(y2-y1+2*zoomFactor*stroke);
-		} else {
-			y=(int)(y2-zoomFactor*stroke);
-			h=(int)(y1-y2+2*zoomFactor*stroke);
-		}
-		g.fill(new Rectangle(x,y,w,h));
-		g.dispose();
-		drawLength+=zoomFactor*stroke;
-	}
 
 
 
@@ -628,7 +720,7 @@ public class imageProcessor {
 	public static void main(String[] args) {
 		imageProcessor ip = getImageProcessorFromFile("sperm/easy/24708.1_2 at 20X.jpg");
 		System.out.println("starting to think");
-		System.out.println("Length is "+ip.getCellLengthManual(true,5,1000,.6));
+		System.out.println("Length is "+ip.getCellLengthManual(0,5,1000,.6));
 	}
 
 }
