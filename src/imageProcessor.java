@@ -57,7 +57,7 @@ public class imageProcessor {
 
 	public imageProcessor(BufferedImage i) {
 		this.im=i;
-		this.imOriginal=deepCopy(i);
+		this.imOriginal=i;
 		this.width=i.getWidth();
 		this.height=i.getHeight();
 		// TODO Auto-generated constructor stub
@@ -87,9 +87,13 @@ public class imageProcessor {
 		titles.add("Only Biggest Connected Component");
 		
 		contouring();
-		contourThinning(4,0.4);
+		contourThinning(8,0.4);
+		
+		ims.add(makeSkeletonImage(thinnedCells));
+		titles.add("Resultant Skeleton");
+		
 		ims.add(getHighlightedImage(thinnedCells));
-		titles.add("Final Skeleton Highlighted");
+		titles.add("Final Skeleton Highlighted on Original");
 		
 		return thinnedCells.size()/3.06;
 	}
@@ -121,8 +125,12 @@ public class imageProcessor {
 		
 		contouring();
 		contourThinning(absolute,relative);
+		
+		ims.add(makeSkeletonImage(thinnedCells));
+		titles.add("Resultant Skeleton");
+		
 		ims.add(getHighlightedImage(thinnedCells));
-		titles.add("Final Skeleton Highlighted");
+		titles.add("Final Skeleton Highlighted on Original");
 		
 		return thinnedCells.size()/3.06;
 	}
@@ -531,23 +539,42 @@ public class imageProcessor {
 	 ** Highlights a list of points of interest on the current image 
 	 */
 	public BufferedImage getHighlightedImage(List<Point> pointList) {
-		BufferedImage newImage = deepCopy(im);
+		BufferedImage newImage = im;
 		int blue = Color.BLUE.getRGB();
 		for (Point p: pointList) {
 			newImage.setRGB(p.x,p.y,blue);
 		}
 		return newImage;
 	}
+	
+	/*
+	 * Returns image with just Skeleton
+	 */
+	public BufferedImage makeSkeletonImage(List<Point> pointlist){
+		BufferedImage b = new BufferedImage(width, height, 3);
+		for(int x = 0; x < width; x++) {
+			for(int y = 0; y < height; y++) {
+					color = Color.BLACK;
+				b.setRGB(x, y, color.getRGB());
+			}
+		}
+		int white = Color.WHITE.getRGB();
+		for (Point p: pointlist) {
+			b.setRGB(p.x,p.y,white);
+		}
+		return b;
+	}
 
 	/*
 	 ** Performs a deep copy of a buffered image 
-	 */
+	 
 	public BufferedImage deepCopy(BufferedImage bi) {
 		ColorModel cm = bi.getColorModel();
 		boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
 		WritableRaster raster = bi.copyData(null);
 		return new BufferedImage(cm, raster, isAlphaPremultiplied, null);
 	}
+	*/
 
 	/*
 	 * Turns the binary array to a buffered image
@@ -568,28 +595,19 @@ public class imageProcessor {
 		return b;
 	}
 
-	/*
-	 ** Clears all user-drawn lines on the current image 
-	 */
-	public void clearDrawing() {
-		BufferedImage im2 = deepCopy(imOriginal);
-		im=imOriginal;
-		imOriginal=im2;
-		drawLength=0;
-	}
 
 
 	/*
 	 ** Creates a CellImage object from an image file at path s 
 	 */
-	public static imageProcessor getCellImageFromFile(String s) {
+	public static imageProcessor getImageProcessorFromFile(String s) {
 
 		try {                
 			BufferedImage image = ImageIO.read(new File(s));
-			imageProcessor ci = new imageProcessor(image);
-			ci.fileName=s;
-			ci.imOriginal=ci.deepCopy(ci.im);
-			return ci;
+			imageProcessor ip = new imageProcessor(image);
+			ip.fileName=s;
+			ip.imOriginal=ip.im;
+			return ip;
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			return null;
@@ -600,60 +618,9 @@ public class imageProcessor {
 	 * Main
 	 */
 	public static void main(String[] args) {
-		System.out.println("micrometers");
-		/*
-		File imgsrc = new File( "sperm/easy/24708.1_1 at 20X.jpg");
-		//File imgsrc = new File( "duke_skateboard.jpg");
-		BufferedImage img = null;
-		try {
-			img = ImageIO.read(imgsrc);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		imageProcessor imageTest = new imageProcessor(img);
-		//Graphics g = imageTest.im.getGraphics();
-		//g.drawImage(imageTest.im, 0, 0,imageTest.width,imageTest.height, null);
-
-		System.out.println(imageTest.getCellLength());
-
-		int w = img.getWidth(null);
-		int h = img.getHeight(null);
-
-
-		BufferedImage bi = new
-		    BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
-		JLabel picLabel = new JLabel(new ImageIcon(img));
-
-
-		JFrame frame = new JFrame();
-		//frame.getContentPane().setLayout(new FlowLayout());		
-		JPanel jp = new JPanel();
-		jp.setPreferredSize(new Dimension(400,800));// changed it to preferredSize, Thanks!
-		frame.getContentPane().add( jp );// adding to content pane will work here. Please read the comment bellow.
-		frame.getContentPane().add(new JLabel(new ImageIcon(img)));
-		frame.pack();
-		frame.setVisible(true);
-		//frame.setDefaultCloseOp
-
-
-		Graphics g = bi.getGraphics();
-		g.drawImage(img, 0, 0,null);
-
-		JFrame frame = buildFrame();
-
-		final BufferedImage imgf = img;
-
-		JPanel pane = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                g.drawImage(imgf, 0, 0, null);
-            }
-        };
-
-        frame.add(pane);
-		 */
-		System.out.println("Where did the image go??");
+		imageProcessor ip = getImageProcessorFromFile("sperm/easy/24708.1_2 at 20X.jpg");
+		System.out.println("starting to think");
+		System.out.println("Length is "+ip.getCellLengthManual(true,5,1000,.6));
 	}
 
 }

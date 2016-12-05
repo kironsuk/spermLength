@@ -42,6 +42,11 @@ public class flyspermGUI {
 	private int currIndex;
 	private JFileChooser fileChooser;
 	private JLabel imgPane;
+	private JButton btnFindLength;
+	private JButton btnFindLengthMan;
+	private JButton nextImage;
+	private JButton prevImage;
+	private JButton saveImage;
 
 	/**
 	 * Launch the application.
@@ -98,7 +103,8 @@ public class flyspermGUI {
             }
         });
 		
-		JButton btnFindLength = new JButton("Find Length");
+		
+		btnFindLength = new JButton("Find Length");
 		c.gridx = 1;
 		c.gridy = 0;
 		panel.add(btnFindLength, c);
@@ -107,8 +113,9 @@ public class flyspermGUI {
                 findLengthAction(evt);
             }
         });
+		btnFindLength.setEnabled(false);
 		
-		JButton btnFindLengthMan = new JButton("Find Length Manual");
+		btnFindLengthMan = new JButton("Find Length Manual");
 		c.gridx = 2;
 		c.gridy = 0;
 		panel.add(btnFindLengthMan, c);
@@ -117,6 +124,7 @@ public class flyspermGUI {
                 findLengthActionMan(evt);
             }
         });
+		btnFindLengthMan.setEnabled(false);
 		
 		
 		title = new JLabel();
@@ -137,7 +145,7 @@ public class flyspermGUI {
 		spanel.setLayout(new GridBagLayout());
 		
 		
-		JButton nextImage = new JButton("Next");
+		nextImage = new JButton("Next");
 		spanel.add(nextImage);
 		nextImage.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -145,11 +153,13 @@ public class flyspermGUI {
             }
         });
 		c.gridwidth=1;
-		c.gridx = 1;
+		c.gridx = 2;
 		c.gridy = 1;
 		spanel.add(nextImage,c);
+		nextImage.setEnabled(false);
 		
-		JButton prevImage = new JButton("Previous");
+		
+		prevImage = new JButton("Previous");
 		spanel.add(prevImage);
 		prevImage.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -159,9 +169,22 @@ public class flyspermGUI {
 		c.gridx = 0;
 		c.gridy = 1;
 		spanel.add(prevImage,c);
+		prevImage.setEnabled(false);
+		
+		saveImage = new JButton("Save Image");
+		spanel.add(saveImage);
+		saveImage.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                //saveImage(evt);
+            }
+        });
+		c.gridx = 1;
+		c.gridy = 1;
+		spanel.add(saveImage,c);
+		saveImage.setEnabled(false);
 		
 		lengthDisp = new JLabel("Sperm Length:");
-		c.gridwidth = 2;
+		c.gridwidth = 3;
 		c.gridx = 0;
 		c.gridy = 0;
 		spanel.add(lengthDisp,c);
@@ -235,6 +258,15 @@ public class flyspermGUI {
 		titles.add("Original Image");
 		numImages = 1;
 		changeShownImg(0);
+		turnOnButtons();
+	}
+	
+	private void turnOnButtons(){
+		btnFindLength.setEnabled(true);
+		btnFindLengthMan.setEnabled(true);
+		prevImage.setEnabled(true);
+		nextImage.setEnabled(true);
+		saveImage.setEnabled(true);
 	}
 	
 	private void drawImg(BufferedImage image){
@@ -305,6 +337,7 @@ public class flyspermGUI {
 		imgs = ip.ims;
 		titles = ip.titles;
 		numImages = imgs.size();
+		System.out.println(numImages);
 		changeShownImg(numImages-1);
 	}
 	
@@ -312,7 +345,7 @@ public class flyspermGUI {
 		System.out.println("got here ok");
 		imageProcessor ip = new imageProcessor(originalImg);
 		
-		lengthDisp.setText("Sperm Length is : "+((int) ip.getCellLengthManual(which,w,a,r)+"mm"));
+		lengthDisp.setText("Sperm Length is : "+((int) ip.getCellLengthManual(which,w,a,r)+"um"));
 		imgs = ip.ims;
 		titles = ip.titles;
 		numImages = imgs.size();
