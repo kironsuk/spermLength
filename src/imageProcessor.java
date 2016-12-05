@@ -68,36 +68,12 @@ public class imageProcessor {
 	 ** Combines the thresholding, labelling and thinning methods 
 	 */
 	public double getCellLength() {
-		titles = new ArrayList<String>();
-		ims = new ArrayList<BufferedImage>();
-		ims.add(im);
-		titles.add("Original Image");
-		
-		
-		getGrayscaleArray();
-		ims.add(getGrayScaleImage());
-		titles.add("Grayscale Image");
-		
-		adaptiveThresholding(5);
-		ims.add(array2Img());
-		titles.add("Thresholded Image");
-		
-		keepBiggest(labelImage());
-		ims.add(array2Img());
-		titles.add("Only Biggest Connected Component");
-		
-		contouring();
-		contourThinning(8,0.4);
-		
-		ims.add(makeSkeletonImage(thinnedCells));
-		titles.add("Resultant Skeleton");
-		
-		ims.add(getHighlightedImage(thinnedCells));
-		titles.add("Final Skeleton Highlighted on Original");
-		
-		return thinnedCells.size()/3.06;
+		return getCellLengthManual(true, 5, 50,.6);
 	}
 	
+	/*
+	 * Gets the Cell length with input parameters to determine how the algorithm works
+	 */
 	public double getCellLengthManual(boolean whichThres, int thresParam, int absolute, double relative) {
 		titles = new ArrayList<String>();
 		ims = new ArrayList<BufferedImage>();
@@ -113,7 +89,7 @@ public class imageProcessor {
 			adaptiveThresholding(thresParam);
 		}
 		else{// stardard
-			threshold(thresParam);
+			adaptiveThresholdingPlusStd(thresParam);
 		}
 		ims.add(array2Img());
 		titles.add("Thresholded Image");
@@ -139,30 +115,28 @@ public class imageProcessor {
 	/*
 	 ** Computes the average pixel value of the grayscale image
 	 */
-	public int getAvgBrightness() {
-		int res=0;
-		for (int i=0;i<width;i++) {
-			int sum=0;
-			for (int j=0;j<height;j++) {
-				sum+=grayscaleArray[i][j];
+	public double getAvgGrayscale() {
+		int total=0;
+		for (int i=1;i<width-1;i++) {
+			for (int j=1;j<height-1;j++) {
+				total+=grayscaleArray[i][j];
 			}
-			res+=sum/height;
 		}
-		return res/width;
+		return total/(width*height);
 	} 
 
 	/*
 	 ** Computes the standard deviation of the grayscale image 
 	 */
-	public double getStdDevBrightness() {
-		double res=0;
+	public double getStdDevGrayscale(double avg) {
+		double total=0;
 		for (int i=0;i<width;i++) {
 			for (int j=0;j<height;j++) {
-				int c=grayscaleArray[i][j];
-				res+=(averageBrightness-c)*(averageBrightness-c);
+				int val=grayscaleArray[i][j];
+				total+=(avg-val)*(avg-val);
 			}
 		}
-		return Math.sqrt(res/width/height);
+		return Math.sqrt(total/(width*height));
 	}
 
 	/*
@@ -265,9 +239,15 @@ public class imageProcessor {
 
 	}
 	/*
-	 * Standard Thresholding. Makes binary2arr where everyone above threshold input is positive and everything below is negative.
+	 * Standard Thresholding. 
+	 * Makes binary2arr where everyone above threshold input is positive and everything below is negative.
+	 * passing a value of -1 will indicate using the mean of the image.  
 	 */
 	public void threshold(int thres){
+		if (thres==-1){
+			thres = (int) getAvgGrayscale();
+		}
+		
 		binary2dArr = new boolean[width][height];
 		for (int i=1;i<width-1;i++) {
 			for (int j=1;j<height-1;j++) {
@@ -275,6 +255,7 @@ public class imageProcessor {
 			}
 		}
 	}
+	
 
 	/*
 	 * Uses the mean of the pixels in the box defined by the window size around the pixel as the threshold.
@@ -284,18 +265,45 @@ public class imageProcessor {
 		binary2dArr = new boolean[width][height];
 		for (int i=1;i<width-1;i++) {
 			for (int j=1;j<height-1;j++) {
-				int sum=0,count=0;
+				double sum=0;
+				int count=0;
 				for (int k=-window;k<=window;k++) {
-					if (i+k>=width) break;
 					if (i+k<0) continue;
+					if (i+k>=width) break;
 					for (int l=-window;l<=window;l++) {
-						if (j+l>=height) break;
 						if (j+l<0) continue;
+						if (j+l>=height) break;
 						sum+=grayscaleArray[i+k][j+l];
 						count++;
 					}
 				}
-				if (grayscaleArray[i][j]*count>sum)
+				if (grayscaleArray[i][j]>sum/count)
+					binary2dArr[i][j]=true;
+			}
+		}
+	}
+	/*
+	 * Uses the mean plus std of image of the pixels in the box defined by the window size around the pixel as the threshold.
+	 * The idea here is to the continuous line of a sperm cell one object. 
+	 */
+	public void adaptiveThresholdingPlusStd(int window) {
+		binary2dArr = new boolean[width][height];
+		double std = getStdDevGrayscale(getAvgGrayscale());
+		for (int i=1;i<width-1;i++) {
+			for (int j=1;j<height-1;j++) {
+				double sum=0;
+				int count=0;
+				for (int k=-window;k<=window;k++) {
+					if (i+k<0) continue;
+					if (i+k>=width) break;
+					for (int l=-window;l<=window;l++) {
+						if (j+l<0) continue;
+						if (j+l>=height) break;
+						sum+=grayscaleArray[i+k][j+l];
+						count++;
+					}
+				}
+				if (grayscaleArray[i][j]>(sum/count+std))
 					binary2dArr[i][j]=true;
 			}
 		}
@@ -461,8 +469,8 @@ public class imageProcessor {
 	 */
 	public void increaseContrast() {
 		if (grayscaleArray==null) getGrayscaleArray();
-		if (averageBrightness==0) averageBrightness=getAvgBrightness();
-		if (stdDevBrightness==0) stdDevBrightness=getStdDevBrightness();
+		if (averageBrightness==0) averageBrightness=(int) getAvgGrayscale();
+		if (stdDevBrightness==0) stdDevBrightness=getStdDevGrayscale(averageBrightness);
 		currentContrast++;
 		if (currentContrast>=0)
 			im=changeBrightness(imOriginal,averageBrightness,(int)stdDevBrightness,1+currentContrast);
@@ -476,8 +484,8 @@ public class imageProcessor {
 	 */
 	public void decreaseContrast() {
 		if (grayscaleArray==null) getGrayscaleArray();
-		if (averageBrightness==0) averageBrightness=getAvgBrightness();
-		if (stdDevBrightness==0) stdDevBrightness=getStdDevBrightness();
+		if (averageBrightness==0) averageBrightness=(int) getAvgGrayscale();
+		if (stdDevBrightness==0) stdDevBrightness=getStdDevGrayscale(averageBrightness);
 		currentContrast--;
 		if (currentContrast>=0)
 			im=changeBrightness(imOriginal,averageBrightness,(int)stdDevBrightness,1+currentContrast);
