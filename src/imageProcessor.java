@@ -76,8 +76,7 @@ public class imageProcessor {
 	}
 
 	/*
-	 ** Automatically computes the length of the sperm cell
-	 ** Combines the thresholding, labelling and thinning methods 
+	 *Automatically computes Sperm cell length. Uses the selected area.  
 	 */
 	public double getCellLength() {
 		return getCellLengthManual(1, 4, 20,.5);
@@ -101,7 +100,6 @@ public class imageProcessor {
 		
 		
 		switch (whichThres) {
-
 		case 1://adaptive just mean
 			adaptiveThresholding(thresParam);
 			break;
@@ -128,7 +126,7 @@ public class imageProcessor {
 		ims.add(array2Img());
 		titles.add("Only Biggest Connected Component");
 		
-		contouring();
+		makecells();
 		contourThinning(absolute,relative);
 		
 		ims.add(makeSkeletonImage(thinnedCells));
@@ -142,7 +140,7 @@ public class imageProcessor {
 
 
 	/*
-	 ** Computes the average pixel value of the grayscale image
+	 ** Computes the average pixel value of the grayscale image within the selected region
 	 */
 	public double getAvgGrayscale() {
 		double total=0;
@@ -182,6 +180,7 @@ public class imageProcessor {
 		Point p = new Point();
 		for (int i=0;i<width;i++) {
 			for (int j=0;j<height;j++) {
+				//red seems to be standard so I used red
 				grayscaleArray[i][j]=new Color(im.getRGB(i,j)).getRed();
 			}
 		}
@@ -205,6 +204,9 @@ public class imageProcessor {
 		}
 	}
 	
+	/*
+	 * for viewing the processeed image
+	 */
 	public BufferedImage getGrayScaleImage(){
 		BufferedImage b = new BufferedImage(width, height, 3);
 		int val;
@@ -291,9 +293,10 @@ public class imageProcessor {
 		
 	}
 		/*
-		 ** Only keep kth biggest Component
+		 ** Only keep kth biggest Component 
 		 */
 		public void keepkthBiggest(int k, int numObjects) {
+			//method currently doesn't work
 			int[] countArray = new int[numObjects+1];
 			//iterate through grid to update count array
 			for (int i=0;i<width;i++) {
@@ -446,34 +449,37 @@ public class imageProcessor {
 	 ** Creates a cell complex from object pixels
 	 ** cells1: points,  cells2: lines, cells3: boxes 
 	 */
-	public void contouring() {
-		cells1=new ArrayList<Point>();
+	public void makecells() {
+		//arrayList for dynamic size
+		cells1=new ArrayList<Point>(); 
 		cells2=new ArrayList<Point>();
 		cells3=new ArrayList<Integer[]>();
+		//memory structure we talked about in class
 		int[][] cellId = new int[width][height];
 		int[][] hLineId = new int[width-1][height-1];
 		int[][] vLineId = new int[width-1][height-1];
-		int cid=1, lid=1;
+		int cid=0, lid=0;
 		for (int i=0;i<width;i++) {
 			for (int j=0;j<height;j++) {
 				if (binary2dArr[i][j]) {
+					cid++;
 					cells1.add(new Point(i,j));
 					cellId[i][j]=cid;
-					cid++;
 				}
 			}
 		}
 		for (int i=0;i<width-1;i++) {
 			for (int j=0;j<height-1;j++) {
 				if (binary2dArr[i][j]&&binary2dArr[i][j+1]) {
+					lid++;
 					cells2.add(new Point(cellId[i][j],cellId[i][j+1]));
 					vLineId[i][j]=lid;
-					lid++;
+
 				}
 				if (binary2dArr[i][j]&&binary2dArr[i+1][j]) {
+					lid++;
 					cells2.add(new Point(cellId[i][j],cellId[i+1][j]));
 					hLineId[i][j]=lid;
-					lid++;
 				}
 			}
 		}
@@ -630,18 +636,6 @@ public class imageProcessor {
 
 
 	/*
-	 ** Saves the given image i to a file of name s
-	 */
-	public void saveImage(BufferedImage i,String s) {
-		try {                
-			ImageIO.write(i,"jpg",new File(s));
-		} catch (IOException ex) {
-			ex.printStackTrace();
-			return;
-		}
-	}
-
-	/*
 	 ** Highlights a list of points of interest on the current image 
 	 */
 	public BufferedImage getHighlightedImage(List<Point> pointList) {
@@ -672,7 +666,7 @@ public class imageProcessor {
 	}
 
 	/*
-	 ** Performs a deep copy of a buffered image 
+	 ** Performs a deep copy of a buffered image. Don't want just pointers
 	 */
 	
 	public BufferedImage deepCopy(BufferedImage bi) {
@@ -724,10 +718,12 @@ public class imageProcessor {
 	/*
 	 * Main
 	 */
+	/*
 	public static void main(String[] args) {
 		imageProcessor ip = getImageProcessorFromFile("sperm/easy/24708.1_2 at 20X.jpg");
 		System.out.println("starting to think");
 		System.out.println("Length is "+ip.getCellLengthManual(4,5,1000,.6));
 	}
+	*/
 
 }
